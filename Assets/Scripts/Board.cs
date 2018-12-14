@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Board : MonoBehaviour
 {
@@ -23,15 +24,38 @@ public class Board : MonoBehaviour
     public List<PlayerPiece> LivePieces;
     public List<PlayerPiece> DeadPieces;
 
+    public MenuManager Menu;
+
+
     public bool IsAnimating = false;
 
     bool checkPieces = false;
+    public PlayerPiece.Player CurrentPlayer;
 
     // Use this for initialization
     void Start()
     {
 
         Cells = new List<List<Cell>>();
+        CurrentPlayer = PlayerPiece.Player.PLAYER_1;
+
+        CreateBoardCells();
+
+        SpawnPlayerPieces();
+
+        SetBoardNeighbors();
+    }
+
+    public void NewGame()
+    {
+        ClearPlayerPiecesFromBoard();
+        SpawnPlayerPieces();
+        SetBoardNeighbors();
+        Menu.gameObject.SetActive(false);
+    }
+
+    private void CreateBoardCells()
+    {
         float aspectRatio = (float)Screen.width / (float)Screen.height;
         float offSetX = 0;
         float offSetY = 0;
@@ -64,9 +88,96 @@ public class Board : MonoBehaviour
                 {
                     cell.type = Cell.Type.CASTLE;
                     cell.material = CastleMaterial;
+                }
+                else if (
+                        (i == 4 && j == 6) ||
+                        (i == 5 && (j == 5 || j == 6 || j == 7)) ||
+                        (i == 6 && (j == 4 || j == 5 || j == 7 || j == 8)) ||
+                        (i == 7 && (j == 5 || j == 6 || j == 7)) ||
+                        (i == 8 && j == 6)
+                        )
+                {
+                    cell.type = Cell.Type.CELL;
+                    cell.material = CellMaterial;
+                }
+                else if (
+                    // left and right base camp cells
+                    (i == 0 || i == 12) && (j >= 4 && j <= 8) ||
+                    // top and bottom base camp cells
+                    (j == 0 || j == 12) && (i >= 4 && i <= 8) ||
+                    // interior base camp cells
+                    (i == 1 && j == 6 || i == 6 && j == 1 || i == 6 && j == 11 || i == 11 && j == 6)
+                    )
+                {
+                    cell.type = Cell.Type.BASE_CAMP;
+                    cell.material = BaseCampMaterial;
+                }
+                // everything else
+                else
+                {
+                    cell.type = Cell.Type.CELL;
+                    cell.material = CellMaterial;
+                }
 
+                cellGo.transform.position = new Vector3(i - offSetX, j + offSetY, 0);
+
+                Cells[i].Add(cell);
+            }
+        }
+    }
+
+    private void SetBoardNeighbors()
+    {
+        for (var i = 0; i < Cells.Count; i++)
+        {
+            for (var j = 0; j < Cells[i].Count; j++)
+            {
+                var cell = Cells[i][j];
+
+                if (cell.type == Cell.Type.BASE_CAMP)
+                {
+                    //Debug.Log("found base camp: " + i + ", " + j);
+                    CheckBaseNeighbors(i, j, cell);
+                }
+
+                SetNeighbors(i, j, cell);
+            }
+        }
+    }
+
+    private void ClearPlayerPiecesFromBoard()
+    {
+
+        for (var i = 0; i < Cells.Count; i++)
+        {
+            for (var j = 0; j < Cells[i].Count; j++)
+            {
+                var cell = Cells[i][j];
+                if(cell.CurrentPiece != null)
+                {
+                    Destroy(cell.CurrentPiece.gameObject);
+                    cell.CurrentPiece = null;
+                }
+            }
+        }
+
+    }
+
+    // TODO: Refactor this so the board size can be variable
+    private void SpawnPlayerPieces()
+    {
+        LivePieces = new List<PlayerPiece>();
+        DeadPieces = new List<PlayerPiece>();
+
+        for (var i = 0; i < Cells.Count; i++)
+        {
+            for (var j = 0; j < Cells[i].Count; j++)
+            {
+                Cell cell = Cells[i][j];
+                if (i == 6 && j == 6)
+                {
                     var kingGo = Instantiate(King);
-                    kingGo.transform.position = new Vector3(i - offSetX, j + offSetY, -1);
+                    kingGo.transform.position = cell.transform.position + Vector3.back;
                     cell.CurrentPiece = kingGo.GetComponent<PlayerPiece>();
                     var piece = kingGo.GetComponent<PlayerPiece>();
                     piece.currentCell = cell;
@@ -82,11 +193,8 @@ public class Board : MonoBehaviour
                         (i == 8 && j == 6)
                         )
                 {
-                    cell.type = Cell.Type.CELL;
-                    cell.material = CellMaterial;
-
                     var defenderGo = Instantiate(Defender);
-                    defenderGo.transform.position = new Vector3(i - offSetX, j + offSetY, -1);
+                    defenderGo.transform.position = cell.transform.position + Vector3.back;
                     cell.CurrentPiece = defenderGo.GetComponent<PlayerPiece>();
                     var piece = defenderGo.GetComponent<PlayerPiece>();
                     piece.currentCell = cell;
@@ -104,12 +212,8 @@ public class Board : MonoBehaviour
                     (i == 1 && j == 6 || i == 6 && j == 1 || i == 6 && j == 11 || i == 11 && j == 6)
                     )
                 {
-                    cell.type = Cell.Type.BASE_CAMP;
-                    cell.material = BaseCampMaterial;
-
-
                     var attackerGO = Instantiate(Attacker);
-                    attackerGO.transform.position = new Vector3(i - offSetX, j + offSetY, -1);
+                    attackerGO.transform.position = cell.transform.position + Vector3.back;
                     cell.CurrentPiece = attackerGO.GetComponent<PlayerPiece>();
                     var piece = attackerGO.GetComponent<PlayerPiece>();
                     piece.currentCell = cell;
@@ -117,34 +221,9 @@ public class Board : MonoBehaviour
                     piece.player = PlayerPiece.Player.PLAYER_2;
                     LivePieces.Add(piece);
                 }
-                // everything else
-                else
-                {
-                    cell.type = Cell.Type.CELL;
-                    cell.material = CellMaterial;
-                }
-
-                cellGo.transform.position = new Vector3(i - offSetX, j + offSetY, 0);
-
-                Cells[i].Add(cell);
             }
         }
 
-        for (var i = 0; i < Cells.Count; i++)
-        {
-            for (var j = 0; j < Cells[i].Count; j++)
-            {
-                var cell = Cells[i][j];
-
-                if (cell.type == Cell.Type.BASE_CAMP)
-                {
-                    //Debug.Log("found base camp: " + i + ", " + j);
-                    CheckBaseNeighbors(i, j, cell);
-                }
-
-                SetNeighbors(i, j, cell);
-            }
-        }
     }
 
     public void MovePiece(Cell cell)
@@ -234,6 +313,7 @@ public class Board : MonoBehaviour
         {
             Debug.Log("pieces have settled");
             CheckPieces();
+            SwitchPlayers();
         }
     }
 
@@ -281,6 +361,7 @@ public class Board : MonoBehaviour
                             // TODO: Game Over, Attackers win
                             Debug.Log("Attackers Win");
                             CapturePiece(cell);
+                            GameOver(PlayerPiece.Player.PLAYER_2);
                         }
                         // not all neighbors have attackers 
                         else
@@ -293,6 +374,7 @@ public class Board : MonoBehaviour
                                 // TODO: Game Over, Attackers win
                                 Debug.Log("Attackers Win");
                                 CapturePiece(cell);
+                                GameOver(PlayerPiece.Player.PLAYER_2);
                             }
                         }
                     }
@@ -302,10 +384,25 @@ public class Board : MonoBehaviour
                         // TODO: Game Over, Defenders win
                         Debug.Log("Defenders Win");
                         CapturePiece(cell);
+                        GameOver(PlayerPiece.Player.PLAYER_1);
                     }
                 }
             });
         });
+    }
+
+    private void GameOver(PlayerPiece.Player player)
+    {
+        Menu.gameObject.SetActive(true);
+        Text text = Menu.WinnerText.GetComponent<Text>();
+        if (player == PlayerPiece.Player.PLAYER_1)
+        {
+            text.text = "The king has escaped!";
+        }
+        else
+        {
+            text.text = "The king has been captured!";
+        }
     }
 
     private void CheckNeighborsForCapture(Cell cell, Cell neighborOne, Cell neighborTwo)
@@ -361,5 +458,10 @@ public class Board : MonoBehaviour
         {
             cell.UnMark();
         }
+    }
+
+    void SwitchPlayers()
+    {
+        CurrentPlayer = CurrentPlayer == PlayerPiece.Player.PLAYER_1 ? PlayerPiece.Player.PLAYER_2 : PlayerPiece.Player.PLAYER_1;
     }
 }

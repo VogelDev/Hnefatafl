@@ -131,8 +131,12 @@ public class Cell : MonoBehaviour {
             GameBoard.SetSelectedCell(null);
             return;
         }
-        GameBoard.SetSelectedCell(this);
-        MarkVerticalNeighbors(this);
-        MarkHorizontalNeighbors(this);
+
+        if(CurrentPiece.player == GameBoard.CurrentPlayer)
+        {
+            GameBoard.SetSelectedCell(this);
+            MarkVerticalNeighbors(this);
+            MarkHorizontalNeighbors(this);
+        }
     }
 }
