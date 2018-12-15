@@ -26,6 +26,8 @@ public class Board : MonoBehaviour
 
     public MenuManager Menu;
 
+    public GameObject PlayerIndicatorGo;
+
 
     public bool IsAnimating = false;
 
@@ -48,6 +50,8 @@ public class Board : MonoBehaviour
 
     public void NewGame()
     {
+        CurrentPlayer = PlayerPiece.Player.PLAYER_1;
+        PlayerIndicatorGo.GetComponent<PlayerIndicator>().SetPlayerIndicator(PlayerPiece.Player.PLAYER_1);
         ClearPlayerPiecesFromBoard();
         SpawnPlayerPieces();
         SetBoardNeighbors();
@@ -463,5 +467,6 @@ public class Board : MonoBehaviour
     void SwitchPlayers()
     {
         CurrentPlayer = CurrentPlayer == PlayerPiece.Player.PLAYER_1 ? PlayerPiece.Player.PLAYER_2 : PlayerPiece.Player.PLAYER_1;
+        PlayerIndicatorGo.GetComponent<PlayerIndicator>().SetPlayerIndicator(CurrentPlayer);
     }
 }
