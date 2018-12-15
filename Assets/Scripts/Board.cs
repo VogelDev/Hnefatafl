@@ -362,7 +362,6 @@ public class Board : MonoBehaviour
                         // if all the neighboring cells have attackers, the king loses
                         if (neighboringAttackerCount == neighbors.Count())
                         {
-                            // TODO: Game Over, Attackers win
                             Debug.Log("Attackers Win");
                             CapturePiece(cell);
                             GameOver(PlayerPiece.Player.PLAYER_2);
@@ -370,12 +369,11 @@ public class Board : MonoBehaviour
                         // not all neighbors have attackers 
                         else
                         {
-                            // are any of the neighboring cells special cells?
-                            var specialCellCount = neighbors.Where(c => c.type != Cell.Type.CELL && c.type != Cell.Type.CORNER_ESCAPE).Count();
+                            // are any of the neighboring cells special cells? are they empty? don't count them if they have a piece or we'll count them twice
+                            var specialCellCount = neighbors.Where(c => c.type != Cell.Type.CELL && c.type != Cell.Type.CORNER_ESCAPE && c.CurrentPiece == null).Count();
                             // if you add the special cells with the attacker cells and it is the same number as neigboring cells, the king is surrounded
                             if (specialCellCount + neighboringAttackerCount == neighbors.Count())
                             {
-                                // TODO: Game Over, Attackers win
                                 Debug.Log("Attackers Win");
                                 CapturePiece(cell);
                                 GameOver(PlayerPiece.Player.PLAYER_2);
@@ -385,7 +383,6 @@ public class Board : MonoBehaviour
                     // if not, the cell is a corner, and the king escapes
                     else
                     {
-                        // TODO: Game Over, Defenders win
                         Debug.Log("Defenders Win");
                         CapturePiece(cell);
                         GameOver(PlayerPiece.Player.PLAYER_1);
